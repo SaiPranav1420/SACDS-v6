@@ -5,10 +5,11 @@
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.0-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
-
-A research-grade document security system that enforces **section-level access control** using NLP-based sensitivity scoring, role-based clearance, and reinforcement learning policy adaptation.
+A research-grade document security system that enforces **section-level access control** using NLP-based sensitivity scoring, role-based clearance, and reinforcement learning policy adaptation. Features full support for **PDF and DOCX document text extraction** and analysis.
 
 Based on: *Karimi, L., Abdelhakim, M., & Joshi, J.B.D. (2021). arXiv:2105.08587*
+
+![SACDS v6 Web UI](assets/ui_screenshot.png)
 
 ---
 
@@ -138,6 +139,9 @@ Returns the full role → policy mapping.
 
 ### GET `/api/sample-texts`
 Returns 3 sample documents for quick testing.
+
+### POST `/api/extract-text`
+Accepts a `multipart/form-data` upload of a `.txt`, `.pdf`, or `.docx` file and returns the extracted raw text for use in the analysis pipeline.
 
 ---
 
