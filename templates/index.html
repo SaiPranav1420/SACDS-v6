@@ -807,9 +807,12 @@
 
     <!-- Empty / loading / results -->
     <div class="panel" style="flex:1; min-height: 500px;">
-      <div class="panel-header">
+      <div class="panel-header" style="display: flex; align-items: center; justify-content: space-between;">
         <span class="panel-title">Analysis Results</span>
-        <span class="panel-badge" id="results-badge">AWAITING INPUT</span>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button class="btn btn-ghost" id="btn-download" style="display:none; color:var(--teal); border-color:var(--teal); padding: 4px 10px; font-size: 0.65rem;">💾 DOWNLOAD REPORT</button>
+          <span class="panel-badge" id="results-badge">AWAITING INPUT</span>
+        </div>
       </div>
       <div class="panel-body" style="height:calc(100% - 45px); overflow-y:auto;">
 
@@ -972,9 +975,11 @@ async function runAnalysis() {
 
 // ── Render results ────────────────────────────────────────────────
 function renderResults(data) {
+  window._lastAnalysisData = data;
   $('empty-state').style.display  = 'none';
   $('loader').classList.remove('active');
   $('error-box').style.display    = 'none';
+  $('btn-download').style.display = 'block';
   $('results-container').style.display = 'block';
   $('results-badge').textContent  = `${data.sections.length} SECTIONS · ${data.nlp_mode.toUpperCase()}`;
 
@@ -1065,6 +1070,7 @@ function escHtml(s) {
 function showLoader() {
   $('empty-state').style.display  = 'none';
   $('error-box').style.display    = 'none';
+  $('btn-download').style.display = 'none';
   $('results-container').style.display = 'none';
   $('loader').classList.add('active');
   $('results-badge').textContent  = 'PROCESSING…';
@@ -1080,6 +1086,7 @@ function showError(msg) {
   clearInterval(window._loaderInterval);
   $('empty-state').style.display  = 'none';
   $('loader').classList.remove('active');
+  $('btn-download').style.display = 'none';
   $('results-container').style.display = 'none';
   $('error-box').style.display    = 'block';
   $('error-box').textContent      = '⚠ ERROR: ' + msg;
@@ -1104,9 +1111,36 @@ $('btn-clear').addEventListener('click', () => {
   $('doc-text').value = '';
   $('empty-state').style.display  = 'flex';
   $('loader').classList.remove('active');
+  $('btn-download').style.display = 'none';
   $('error-box').style.display    = 'none';
   $('results-container').style.display = 'none';
   $('results-badge').textContent  = 'AWAITING INPUT';
+});
+
+$('btn-download').addEventListener('click', () => {
+  if (!window._lastAnalysisData) return;
+  const data = window._lastAnalysisData;
+  let content = "SACDS v6 REDACTED DOCUMENT REPORT\n";
+  content += `Role: ${data.user.role.toUpperCase()} | Clearance: ${data.user.clearance}/5 | Doc Class: ${data.doc_class.toUpperCase()}\n`;
+  content += "=".repeat(60) + "\n\n";
+
+  data.sections.forEach(sec => {
+    if (sec.decision === 'REDACT') {
+      content += `[REDACTED] — ${sec.reason}\n\n`;
+    } else {
+      content += sec.display_text + "\n\n";
+    }
+  });
+
+  const blob = new Blob([content.trim()], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `SACDS_Report_${data.user.role}_${Date.now()}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
 
 $('btn-upload').addEventListener('click', () => {
