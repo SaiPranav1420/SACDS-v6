@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SACDS v6 — Semantic Adaptive Content & Document Security</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & base ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #050b12;
+      --bg2:       #080f1a;
+      --bg3:       #0c1520;
+      --panel:     #0a141f;
+      --border:    rgba(0,230,200,0.18);
+      --border2:   rgba(0,230,200,0.35);
+      --teal:      #00e6c8;
+      --teal-dim:  rgba(0,230,200,0.12);
+      --teal-glow: rgba(0,230,200,0.35);
+      --red:       #ff3860;
+      --amber:     #ffb300;
+      --green:     #00e676;
+      --blue:      #2196f3;
+      --white:     #d4eae8;
+      --muted:     #4a7a74;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-ui:   'Rajdhani', sans-serif;
+      --font-head: 'Orbitron', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--white);
+      font-family: var(--font-ui);
+      font-size: 15px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* scanline overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,0,0,0.04) 3px,
+        rgba(0,0,0,0.04) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ── Header ────────────────────────────────────────── */
+    header {
+      background: linear-gradient(180deg, rgba(0,230,200,0.06) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border2);
+      padding: 0 2rem;
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 36px; height: 36px;
+      border: 2px solid var(--teal);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      color: var(--teal);
+      clip-path: polygon(10% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 10% 100%, 0% 90%, 0% 10%);
+      animation: pulse-border 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 6px var(--teal-glow); }
+      50%       { box-shadow: 0 0 18px var(--teal-glow), 0 0 40px rgba(0,230,200,0.15); }
+    }
+
+    .logo-text {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--teal);
+      letter-spacing: 0.15em;
+      line-height: 1;
+    }
+
+    .logo-sub {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      margin-top: 2px;
+    }
+
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .status-pill {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 3px 10px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .status-pill.active {
+      border-color: var(--green);
+      color: var(--green);
+      background: rgba(0,230,118,0.06);
+    }
+
+    /* ── Layout ────────────────────────────────────────── */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 1.5rem;
+      min-height: calc(100vh - 64px);
+    }
+
+    /* ── Panel base ────────────────────────────────────── */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--teal), transparent);
+      opacity: 0.6;
+    }
+
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0,230,200,0.03);
+    }
+
+    .panel-title {
+      font-family: var(--font-head);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--teal);
+      text-transform: uppercase;
+    }
+
+    .panel-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    /* ── Form controls ─────────────────────────────────── */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    select, textarea {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--white);
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+    }
+
+    select:focus, textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 1px var(--teal-dim), 0 0 12px var(--teal-dim);
+    }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2300e6c8'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      cursor: pointer;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 180px;
+      line-height: 1.5;
+    }
+
+    textarea::placeholder { color: var(--muted); }
+
+    /* ── Buttons ───────────────────────────────────────── */
+    .btn {
+      font-family: var(--font-head);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      border: 1px solid;
+      padding: 10px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--teal-dim);
+      border-color: var(--teal);
+      color: var(--teal);
+      width: 100%;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .btn-primary:hover {
+      background: rgba(0,230,200,0.2);
+      box-shadow: 0 0 20px var(--teal-glow);
+    }
+
+    .btn-primary:active { transform: scale(0.98); }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--muted);
+      font-size: 0.68rem;
+      padding: 6px 12px;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    /* ── Sample doc chips ──────────────────────────────── */
+    .sample-chips {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .sample-chip {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 7px 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+    }
+
+    .sample-chip:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+      background: var(--teal-dim);
+    }
+
+    .sample-chip::before {
+      content: '▸ ';
+      color: var(--teal);
+    }
+
+    /* ── Separator ─────────────────────────────────────── */
+    .sep {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 14px 0;
+    }
+
+    /* ── Right column ──────────────────────────────────── */
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* ── Empty state ───────────────────────────────────── */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      gap: 16px;
+      color: var(--muted);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      opacity: 0.3;
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-8px); }
+    }
+
+    .empty-title {
+      font-family: var(--font-head);
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+    }
+
+    .empty-sub {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: rgba(74,122,116,0.6);
+    }
+
+    /* ── Summary bar ───────────────────────────────────── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--border);
+    }
+
+    .summary-cell {
+      background: var(--panel);
+      padding: 14px 12px;
+      text-align: center;
+    }
+
+    .summary-val {
+      font-family: var(--font-head);
+      font-size: 1.8rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .summary-label {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .val-show   { color: var(--green); }
+    .val-mask   { color: var(--amber); }
+    .val-redact { color: var(--red); }
+    .val-total  { color: var(--teal); }
+
+    /* ── Sections ──────────────────────────────────────── */
+    .sections-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-card {
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      overflow: hidden;
+      animation: slide-in 0.3s ease both;
+    }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-card:nth-child(1) { animation-delay: 0.05s; }
+    .section-card:nth-child(2) { animation-delay: 0.1s; }
+    .section-card:nth-child(3) { animation-delay: 0.15s; }
+    .section-card:nth-child(4) { animation-delay: 0.2s; }
+    .section-card:nth-child(5) { animation-delay: 0.25s; }
+
+    .section-card.decision-SHOW   { border-left: 3px solid var(--green); }
+    .section-card.decision-MASK   { border-left: 3px solid var(--amber); }
+    .section-card.decision-REDACT { border-left: 3px solid var(--red); }
+
+    .section-meta {
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid rgba(0,230,200,0.06);
+      flex-wrap: wrap;
+      background: rgba(0,0,0,0.2);
+    }
+
+    .decision-badge {
+      font-family: var(--font-head);
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      padding: 2px 8px;
+      border: 1px solid;
+    }
+
+    .db-SHOW   { color: var(--green);  border-color: var(--green);  background: rgba(0,230,118,0.08); }
+    .db-MASK   { color: var(--amber);  border-color: var(--amber);  background: rgba(255,179,0,0.08); }
+    .db-REDACT { color: var(--red);    border-color: var(--red);    background: rgba(255,56,96,0.08); }
+
+    .label-tag {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 2px 7px;
+      border: 1px solid rgba(0,230,200,0.25);
+      color: var(--teal);
+      letter-spacing: 0.06em;
+    }
+
+    .score-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: auto;
+    }
+
+    .score-pips {
+      display: flex;
+      gap: 3px;
+    }
+
+    .pip {
+      width: 8px; height: 8px;
+      border: 1px solid var(--border2);
+    }
+
+    .pip.filled-0 { background: var(--bg3); }
+    .pip.filled-1 { background: var(--green); }
+    .pip.filled-2 { background: #8bc34a; }
+    .pip.filled-3 { background: var(--amber); }
+    .pip.filled-4 { background: var(--red); }
+    .pip.filled-5 { background: #d500f9; }
+
+    .section-text {
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      line-height: 1.7;
+      color: var(--white);
+    }
+
+    .section-text.redacted {
+      color: var(--red);
+      opacity: 0.7;
+      font-style: italic;
+    }
+
+    .section-text.masked {
+      color: var(--amber);
+    }
+
+    .section-reason {
+      padding: 6px 14px 10px;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-reason::before {
+      content: '⌖';
+      color: var(--teal);
+    }
+
+    /* keyword chips */
+    .kw-chips {
+      padding: 0 14px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .kw-chip {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      padding: 2px 6px;
+      background: rgba(0,230,200,0.05);
+      border: 1px solid rgba(0,230,200,0.15);
+      color: var(--teal);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Loading spinner ───────────────────────────────── */
+    .loader {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      min-height: 300px;
+    }
+
+    .loader.active { display: flex; }
+
+    .spinner {
+      width: 44px; height: 44px;
+      border: 2px solid var(--border);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader-text {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      animation: blink 1.2s step-end infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    /* ── User info card ────────────────────────────────── */
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      margin-bottom: 14px;
+    }
+
+    .user-avatar {
+      width: 38px; height: 38px;
+      background: var(--teal-dim);
+      border: 1px solid var(--border2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+
+    .user-name {
+      font-family: var(--font-ui);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--white);
+    }
+
+    .user-meta {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .clearance-bar {
+      margin-left: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .clearance-label {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .clearance-pips {
+      display: flex;
+      gap: 3px;
+    }
+
+    .clr-pip {
+      width: 12px; height: 5px;
+      background: var(--border);
+    }
+
+    .clr-pip.active { background: var(--teal); }
+
+    /* ── Policy table ──────────────────────────────────── */
+    .policy-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+    }
+
+    .policy-table th {
+      text-align: left;
+      padding: 6px 8px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .policy-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(0,230,200,0.05);
+      color: var(--white);
+    }
+
+    .policy-table tr:hover td { background: rgba(0,230,200,0.03); }
+
+    /* ── Error state ───────────────────────────────────── */
+    .error-box {
+      background: rgba(255,56,96,0.08);
+      border: 1px solid rgba(255,56,96,0.35);
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--red);
+    }
+
+    /* ── Scrollbar ─────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--teal); }
+
+    /* ── Responsive ─────────────────────────────────────── */
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🛡</div>
+      <div>
+        <div class="logo-text">SACDS v6</div>
+        <div class="logo-sub">SEMANTIC ADAPTIVE CONTENT & DOCUMENT SECURITY</div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="status-pill active">● SYSTEM ONLINE</div>
+      <div class="status-pill" id="nlp-status">NLP: LOADING…</div>
+      <div class="status-pill">NIST SP 800-162</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Left column: Input ─────────────────────────────── -->
+  <aside>
+
+    <!-- Identity -->
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="panel-header">
+        <span class="panel-title">L1 · Identity</span>
+        <span class="panel-badge">CLEARANCE SELECT</span>
+      </div>
+      <div class="panel-body">
+        <div id="user-info-card" class="user-info">
+          <div class="user-avatar">👤</div>
+          <div>
+            <div class="user-name" id="ui-name">—</div>
+            <div class="user-meta" id="ui-role">Select a user</div>
+          </div>
+          <div class="clearance-bar">
+            <div class="clearance-label">CLEARANCE</div>
+            <div class="clearance-pips" id="ui-pips">
+              <div class="clr-pip"></div><div class="clr-pip"></div>
+              <div class="clr-pip"></div><div class="clr-pip"></div>
+              <div class="clr-pip"></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="sel-user">User Identity</label>
+          <select id="sel-user">
+            <option value="alice_admin">Alice Admin · admin</option>
+            <option value="bob_manager">Bob Manager · manager</option>
+            <option value="carol_employee" selected>Carol Employee · employee</option>
+            <option value="dave_auditor">Dave Auditor · auditor</option>
+            <option value="eve_intern">Eve Intern · intern</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Config -->
+    <div class="panel" style="margin-bottom:1rem;">
+      <div class="panel-header">
+        <span class="panel-title">Configuration</span>
+        <span class="panel-badge">9-LAYER ABAC</span>
+      </div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label for="sel-doc-class">Document Classification</label>
+          <select id="sel-doc-class">
+            <option value="public">PUBLIC</option>
+            <option value="internal" selected>INTERNAL</option>
+            <option value="confidential">CONFIDENTIAL</option>
+            <option value="restricted">RESTRICTED</option>
+            <option value="secret">SECRET</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="sel-nlp">NLP Analysis Mode</label>
+          <select id="sel-nlp">
+            <option value="hybrid" selected>Hybrid (NER + Keywords)</option>
+            <option value="keyword_only">Keyword-Only</option>
+            <option value="ner">NER-Only</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Document input -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">L2 · Document Input</span>
+        <div style="display:flex; gap:8px;">
+          <input type="file" id="file-upload" accept=".txt,.pdf,.docx,.doc" style="display:none;" />
+          <button class="btn btn-ghost" id="btn-upload" style="color:var(--teal); border-color:var(--teal);">⬆ UPLOAD DOC</button>
+          <button class="btn btn-ghost" id="btn-clear">✕ CLEAR</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="form-group">
+          <label for="doc-text">Paste Document Text</label>
+          <textarea id="doc-text" placeholder="Paste your document text here...&#10;&#10;The system will split it into sections and run the full SACDS 9-layer pipeline to determine SHOW / MASK / REDACT decisions per section."></textarea>
+        </div>
+
+        <button class="btn btn-primary" id="btn-analyze">
+          <span>⬢</span> RUN ANALYSIS
+        </button>
+
+        <hr class="sep" />
+
+        <div>
+          <label>Sample Documents</label>
+          <div class="sample-chips" id="sample-chips">
+            <!-- populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Right column: Results ──────────────────────────── -->
+  <div class="right-col">
+
+    <!-- Empty / loading / results -->
+    <div class="panel" style="flex:1; min-height: 500px;">
+      <div class="panel-header">
+        <span class="panel-title">Analysis Results</span>
+        <span class="panel-badge" id="results-badge">AWAITING INPUT</span>
+      </div>
+      <div class="panel-body" style="height:calc(100% - 45px); overflow-y:auto;">
+
+        <!-- Empty state -->
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">⬡</div>
+          <div class="empty-title">NO DOCUMENT LOADED</div>
+          <div class="empty-sub">Paste text and press RUN ANALYSIS</div>
+        </div>
+
+        <!-- Loader -->
+        <div class="loader" id="loader">
+          <div class="spinner"></div>
+          <div class="loader-text" id="loader-msg">PROCESSING PIPELINE…</div>
+        </div>
+
+        <!-- Results -->
+        <div id="results-container" style="display:none;">
+
+          <!-- Summary bar -->
+          <div class="summary-grid" id="summary-grid" style="margin-bottom:16px;"></div>
+
+          <!-- User context -->
+          <div id="result-user-bar" style="margin-bottom:14px;"></div>
+
+          <!-- Sections -->
+          <div class="sections-list" id="sections-list"></div>
+
+        </div>
+
+        <!-- Error -->
+        <div id="error-box" class="error-box" style="display:none;"></div>
+
+      </div>
+    </div>
+
+    <!-- Policy reference -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">L3 · Policy Matrix</span>
+        <span class="panel-badge">NIST RBAC</span>
+      </div>
+      <div class="panel-body">
+        <table class="policy-table" id="policy-table">
+          <thead>
+            <tr>
+              <th>ROLE</th>
+              <th>CLEARANCE</th>
+              <th>PERMITTED LABELS</th>
+            </tr>
+          </thead>
+          <tbody id="policy-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// ── Helpers ───────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const qs = sel => document.querySelector(sel);
+
+const ROLE_EMOJI = {
+  admin: '👑', manager: '💼', employee: '🧑', auditor: '🔍', intern: '🎓'
+};
+
+const LABEL_COLORS = {
+  PUBLIC: '#00e676', CONFIDENTIAL: '#2196f3',
+  LEGAL: '#9c27b0', FINANCIAL: '#ff9800',
+  PII: '#ff3860', TOP_SECRET: '#d500f9',
+};
+
+// ── Load policies ─────────────────────────────────────────────────
+async function loadPolicies() {
+  try {
+    const res = await fetch('/api/policies');
+    const { policies } = await res.json();
+    const tbody = $('policy-tbody');
+    tbody.innerHTML = '';
+    for (const [role, cfg] of Object.entries(policies)) {
+      const tr = document.createElement('tr');
+      const labelsHtml = cfg.labels.map(l =>
+        `<span style="color:${LABEL_COLORS[l]||'#00e6c8'};margin-right:4px;">${l}</span>`
+      ).join('');
+      tr.innerHTML = `
+        <td>${ROLE_EMOJI[role]||''} ${role.toUpperCase()}</td>
+        <td style="color:var(--teal)">${cfg.clearance}/5</td>
+        <td>${labelsHtml}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  } catch (e) { console.warn('Policies load failed', e); }
+}
+
+// ── Load samples ──────────────────────────────────────────────────
+async function loadSamples() {
+  try {
+    const res = await fetch('/api/sample-texts');
+    const { samples } = await res.json();
+    const container = $('sample-chips');
+    container.innerHTML = '';
+    samples.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'sample-chip';
+      btn.textContent = s.label;
+      btn.onclick = () => { $('doc-text').value = s.text; };
+      container.appendChild(btn);
+    });
+  } catch (e) { console.warn('Samples load failed', e); }
+}
+
+// ── User info update ──────────────────────────────────────────────
+function updateUserInfo(userId) {
+  const profiles = {
+    alice_admin:    { name: 'Alice Admin',    role: 'admin',    clearance: 5 },
+    bob_manager:    { name: 'Bob Manager',    role: 'manager',  clearance: 4 },
+    carol_employee: { name: 'Carol Employee', role: 'employee', clearance: 3 },
+    dave_auditor:   { name: 'Dave Auditor',   role: 'auditor',  clearance: 2 },
+    eve_intern:     { name: 'Eve Intern',     role: 'intern',   clearance: 1 },
+  };
+  const p = profiles[userId];
+  if (!p) return;
+  $('ui-name').textContent = p.name;
+  $('ui-role').textContent = `${(ROLE_EMOJI[p.role]||'')} ${p.role.toUpperCase()} · CLEARANCE ${p.clearance}/5`;
+  const pips = $('ui-pips').querySelectorAll('.clr-pip');
+  pips.forEach((pip, i) => {
+    pip.classList.toggle('active', i < p.clearance);
+  });
+}
+
+// ── Analyze ───────────────────────────────────────────────────────
+async function runAnalysis() {
+  const text      = $('doc-text').value.trim();
+  const user_id   = $('sel-user').value;
+  const doc_class = $('sel-doc-class').value;
+  const nlp_mode  = $('sel-nlp').value;
+
+  if (!text) {
+    showError('No document text provided. Paste a document or select a sample.');
+    return;
+  }
+
+  showLoader();
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, user_id, doc_class, nlp_mode })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Analysis failed');
+    renderResults(data);
+  } catch (e) {
+    showError(e.message);
+  }
+}
+
+// ── Render results ────────────────────────────────────────────────
+function renderResults(data) {
+  $('empty-state').style.display  = 'none';
+  $('loader').classList.remove('active');
+  $('error-box').style.display    = 'none';
+  $('results-container').style.display = 'block';
+  $('results-badge').textContent  = `${data.sections.length} SECTIONS · ${data.nlp_mode.toUpperCase()}`;
+
+  // Summary
+  const s = data.summary;
+  $('summary-grid').innerHTML = `
+    <div class="summary-cell">
+      <div class="summary-val val-total">${s.total_sections}</div>
+      <div class="summary-label">SECTIONS</div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-val val-show">${s.show}</div>
+      <div class="summary-label">SHOW</div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-val val-mask">${s.mask}</div>
+      <div class="summary-label">MASK</div>
+    </div>
+    <div class="summary-cell">
+      <div class="summary-val val-redact">${s.redact}</div>
+      <div class="summary-label">REDACT</div>
+    </div>
+  `;
+
+  // User bar
+  const u = data.user;
+  $('result-user-bar').innerHTML = `
+    <div class="user-info">
+      <div class="user-avatar">${ROLE_EMOJI[u.role]||'👤'}</div>
+      <div>
+        <div class="user-name">${u.name}</div>
+        <div class="user-meta">${u.role.toUpperCase()} · CLEARANCE ${u.clearance}/5 · ${data.doc_class.toUpperCase()}</div>
+      </div>
+      <div style="margin-left:auto; font-family:var(--font-mono); font-size:0.65rem; color:var(--muted);">
+        NLP: ${data.nlp_mode}
+      </div>
+    </div>
+  `;
+
+  // Sections
+  const list = $('sections-list');
+  list.innerHTML = '';
+  data.sections.forEach(sec => {
+    const card = document.createElement('div');
+    card.className = `section-card decision-${sec.decision}`;
+
+    // Score pips
+    const pipsHtml = [1,2,3,4,5].map(i =>
+      `<div class="pip filled-${i <= sec.sensitivity_score ? sec.sensitivity_score : 0}"></div>`
+    ).join('');
+
+    // Keyword chips
+    const kwHtml = (sec.keywords_found||[]).length > 0
+      ? `<div class="kw-chips">${sec.keywords_found.map(k => `<span class="kw-chip">${k}</span>`).join('')}</div>`
+      : '';
+
+    // Policy signal color
+    const sigColor = sec.policy_signal === 'RESTRICT' ? 'var(--red)' :
+                     sec.policy_signal === 'PERMIT'   ? 'var(--green)' : 'var(--muted)';
+
+    card.innerHTML = `
+      <div class="section-meta">
+        <span class="decision-badge db-${sec.decision}">${sec.decision}</span>
+        <span class="label-tag">${sec.top_label}</span>
+        <span style="font-family:var(--font-mono);font-size:0.65rem;color:${sigColor}">
+          ⊕ ${sec.policy_signal}
+        </span>
+        <div class="score-bar">
+          <div class="score-pips">${pipsHtml}</div>
+          <span style="font-family:var(--font-mono);font-size:0.65rem;color:var(--muted);">
+            ${(sec.ml_confidence*100).toFixed(0)}%
+          </span>
+        </div>
+      </div>
+      <div class="section-text ${sec.decision==='REDACT'?'redacted':sec.decision==='MASK'?'masked':''}">${escHtml(sec.display_text)}</div>
+      <div class="section-reason">${sec.reason}</div>
+      ${kwHtml}
+    `;
+    list.appendChild(card);
+  });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── States ────────────────────────────────────────────────────────
+function showLoader() {
+  $('empty-state').style.display  = 'none';
+  $('error-box').style.display    = 'none';
+  $('results-container').style.display = 'none';
+  $('loader').classList.add('active');
+  $('results-badge').textContent  = 'PROCESSING…';
+
+  const msgs = ['RUNNING PIPELINE…','L2: SCORING SECTIONS…','L3: POLICY LOOKUP…','L4: ACCESS DECISION…'];
+  let i = 0;
+  window._loaderInterval = setInterval(() => {
+    $('loader-msg').textContent = msgs[i++ % msgs.length];
+  }, 800);
+}
+
+function showError(msg) {
+  clearInterval(window._loaderInterval);
+  $('empty-state').style.display  = 'none';
+  $('loader').classList.remove('active');
+  $('results-container').style.display = 'none';
+  $('error-box').style.display    = 'block';
+  $('error-box').textContent      = '⚠ ERROR: ' + msg;
+  $('results-badge').textContent  = 'ERROR';
+}
+
+// ── Check NLP status ──────────────────────────────────────────────
+async function checkNLPStatus() {
+  try {
+    const res = await fetch('/api/users');
+    const data = await res.json();
+    $('nlp-status').textContent = 'NLP: READY';
+    $('nlp-status').classList.add('active');
+  } catch (e) {
+    $('nlp-status').textContent = 'NLP: OFFLINE';
+  }
+}
+
+// ── Events ────────────────────────────────────────────────────────
+$('btn-analyze').addEventListener('click', runAnalysis);
+$('btn-clear').addEventListener('click', () => {
+  $('doc-text').value = '';
+  $('empty-state').style.display  = 'flex';
+  $('loader').classList.remove('active');
+  $('error-box').style.display    = 'none';
+  $('results-container').style.display = 'none';
+  $('results-badge').textContent  = 'AWAITING INPUT';
+});
+
+$('btn-upload').addEventListener('click', () => {
+  $('file-upload').click();
+});
+
+$('file-upload').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  showLoader();
+  $('loader-msg').textContent = 'EXTRACTING DOCUMENT TEXT…';
+  
+  const formData = new FormData();
+  formData.append('document', file);
+  
+  try {
+    const res = await fetch('/api/extract-text', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Text extraction failed');
+    
+    $('doc-text').value = data.text;
+    
+    // reset UI back to ready state since we only extracted text, hasn't analyzed yet
+    $('empty-state').style.display  = 'none';
+    $('loader').classList.remove('active');
+    $('results-container').style.display = 'none';
+    $('results-badge').textContent  = 'READY FOR ANALYSIS';
+    clearInterval(window._loaderInterval); // Stop any loading message loops
+  } catch (err) {
+    showError(err.message);
+  }
+  
+  e.target.value = ''; // Reset file input
+});
+
+$('sel-user').addEventListener('change', e => updateUserInfo(e.target.value));
+
+$('doc-text').addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') runAnalysis();
+});
+
+// ── Init ──────────────────────────────────────────────────────────
+loadPolicies();
+loadSamples();
+checkNLPStatus();
+updateUserInfo('carol_employee');
+</script>
+</body>
+</html>

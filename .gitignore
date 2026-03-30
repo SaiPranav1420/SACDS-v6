@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+sacds_v4.db
